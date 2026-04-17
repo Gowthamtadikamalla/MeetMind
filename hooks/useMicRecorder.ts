@@ -4,10 +4,11 @@ import { useSessionStore } from "./useSessionStore";
 
 const CHUNK_INTERVAL_MS = 30_000;
 
-// Whisper rejects audio shorter than ~0.1s. Use a conservative minimum
-// to avoid sending the tiny tail chunk emitted when Stop is clicked.
-const MIN_CHUNK_DURATION_MS = 1_000;
-const MIN_BLOB_BYTES = 1_000;
+// Whisper rejects very short audio files. When Stop is clicked right after
+// a 30s boundary, the tail chunk is often 1-3 seconds and fails.
+// 5 seconds is a safe minimum for reliable transcription.
+const MIN_CHUNK_DURATION_MS = 5_000;
+const MIN_BLOB_BYTES = 5_000;
 
 const PREFERRED_MIME_TYPES = [
   "audio/webm;codecs=opus",
