@@ -4,6 +4,11 @@ import { useSessionStore } from "./useSessionStore";
 
 const CHUNK_INTERVAL_MS = 30_000;
 
+// Whisper rejects audio shorter than ~0.1s. Use a conservative minimum
+// to avoid sending the tiny tail chunk emitted when Stop is clicked.
+const MIN_CHUNK_DURATION_MS = 1_000;
+const MIN_BLOB_BYTES = 1_000;
+
 const PREFERRED_MIME_TYPES = [
   "audio/webm;codecs=opus",
   "audio/webm",
@@ -52,11 +57,15 @@ export function useMicRecorder() {
 
   const finishChunk = useCallback(
     (blob: Blob) => {
-      if (blob.size === 0) return;
+      if (blob.size < MIN_BLOB_BYTES) return;
 
       const now = new Date().toISOString();
       const startedAt = chunkStartRef.current || now;
       const durationMs = new Date(now).getTime() - new Date(startedAt).getTime();
+
+      // Skip chunks too short for Whisper to process (e.g., tail chunk on Stop)
+      if (durationMs < MIN_CHUNK_DURATION_MS) return;
+
       const id = uuid();
 
       audioBlobStore.set(id, blob);
